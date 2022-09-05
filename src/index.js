@@ -8,6 +8,7 @@ import mongo from "mongodb";
 import auth from "./auth.js";
 
 
+
 const app = express(); // instanciranje aplikacije
 //const port = process.env.PORT  3000; // port na kojem će web server slušati
 
@@ -27,6 +28,7 @@ app.get("/Proizvod", async (req, res) => {
     let result = await cursor.toArray()
     res.json(result)
 })
+
 
 /* KORISNICI */
 
@@ -59,7 +61,7 @@ app.post("/users", async (req, res) => {
 
 app.get("/ShopingCart", async (req, res) => {
     let db = await connect()
-    let cursor = await db.collection("ShopingCart").find({})
+    let cursor = await db.collection("ShopingCart").find()
     let result = await cursor.toArray()
     res.json(result)
 })
@@ -67,11 +69,18 @@ app.get("/ShopingCart", async (req, res) => {
 
 
 
-app.delete('/ShopingCart/Auth', [auth.verify], async (req, res) => {
-    let { id } = req.params
-    let db = await connect()
-    await db.collection("ShopingCart").deleteOne({ _id: mongo.ObjectId(id) })
-    res.json({ msg: "Entry deleted" })
+app.delete('/ShopingCart/:id', [auth.verify], async (req, res) => {
+    let id = req.params.id
+    try {
+        var ObjectId = require('mongodb').ObjectId;
+        let db = await connect()
+        await db.collection("ShopingCart").deleteOne({ _id: ObjectId(id) })
+        res.json({ msg: "Entry deleted" })
+    }
+    catch (e) {
+        console.log("error" + e)
+    }
+
 })
 
 
@@ -79,6 +88,7 @@ app.delete('/ShopingCart/Auth', [auth.verify], async (req, res) => {
 app.post('/ShopingCart', [auth.verify], async (req, res) => {
     let data = req.body;
     delete data._id;
+
 
 
     let db = await connect();
@@ -93,3 +103,31 @@ app.post('/ShopingCart', [auth.verify], async (req, res) => {
         })
     }
 })
+
+/* SUPPORT */
+
+app.post('/Support', async (req, res) => {
+    let data = req.body;
+    delete data._id;
+
+    if (!data.ime || !data.prezime || !data.temaopis || !data.email) {
+        res.json({
+            status: "fail",
+            reason: "nešto vam nedostaje u unosu"
+        })
+        return
+    }
+
+    let db = await connect();
+    let result = await db.collection("Support").insertOne(data);
+
+    if (result && result.insertedCount == 1) {
+        res.json(result.ops[0]);
+    }
+    else {
+        res.json({
+            status: "fail",
+        })
+    }
+})
+
